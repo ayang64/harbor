@@ -72,22 +72,21 @@ func New(opts ...func(*Jail) error) (*Jail, error) {
 	return &rc, nil
 }
 
-func (j *Jail) Attach() (int, error) {
-	attach := func(jid int) (int, error) {
-		log.Printf("attaching to %d", jid)
-		rc, _, errno := syscall.Syscall(syscall.SYS_JAIL_ATTACH, uintptr(jid), 0, 0)
-		if errno != 0 {
-			return int(rc), error(errno)
-		}
-		return int(rc), nil
+func Attach(jid int) (int, error) {
+	log.Printf("attaching to %d", jid)
+	rc, _, errno := syscall.Syscall(syscall.SYS_JAIL_ATTACH, uintptr(jid), 0, 0)
+	if errno != 0 {
+		return int(rc), error(errno)
 	}
+	return int(rc), nil
+}
 
-	rc, err := attach(j.ID)
+func (j *Jail) Attach() (int, error) {
+	rc, err := Attach(j.ID)
 
 	if err != nil {
 		return rc, err
 	}
-
 	return rc, nil
 }
 
