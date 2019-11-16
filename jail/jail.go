@@ -93,24 +93,6 @@ func (j *Jail) String() string {
 	return fmt.Sprintf("{id: %d, path: %s}", j.ID, j.Path)
 }
 
-func (j *Jail) Attach() (int, error) {
-	attach := func(jid int) (int, error) {
-		rc, _, errno := syscall.Syscall(syscall.SYS_JAIL_ATTACH, uintptr(jid), 0, 0)
-		if errno != 0 {
-			return int(rc), error(errno)
-		}
-		return int(rc), nil
-	}
-
-	rc, err := attach(j.ID)
-
-	if err != nil {
-		return rc, err
-	}
-
-	return rc, nil
-}
-
 func (j *Jail) book() (*jail, error) {
 	cstr := func(s string) unsafe.Pointer {
 		str := append([]byte(s), 0)
