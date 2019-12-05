@@ -132,7 +132,7 @@ func (d *Dispatcher) run(args ...string) error {
 		"path", d.root,
 		"name", "foobar",
 		"host.domainname", "ayan.net",
-		"ip4.addr", net.ParseIP("192.168.0.18").To4(),
+		"ip4.addr", net.ParseIP("10.133.88.6").To4(),
 		"allow.raw_sockets", true,
 		"children.max", 10,
 		"enforce_statfs", 1,
