@@ -198,12 +198,12 @@ func (s SetFlag) String() string {
 		One of the JAIL_CREATE or JAIL_UPDATE flags is not set.
 */
 
-func Set(flags SetFlag, opts ...interface{}) (int, error) {
+func toIovec(opts ...interface{}) ([]syscall.Iovec, error) {
+	// yes, i know i could have used sysctl.BytePtrFromString()
 	cstr := func(s string) (*byte, uint64) {
 		str := append([]byte(s), byte(0))
 		return (*byte)(unsafe.Pointer(&str[0])), uint64(len(str))
 	}
-
 	iov := make([]syscall.Iovec, len(opts), len(opts))
 	for i, opt := range opts {
 		cur := syscall.Iovec{}
@@ -214,14 +214,14 @@ func Set(flags SetFlag, opts ...interface{}) (int, error) {
 			case string:
 				cur.Base, cur.Len = cstr(v)
 			default:
-				return -1, fmt.Errorf("parameter must be a string")
+				return nil, fmt.Errorf("parameter must be a string")
 			}
 		case 1:
 			switch v := opt.(type) {
 			case string:
 				cur.Base, cur.Len = cstr(v)
 			case int:
-				// this must be 32 bit int
+				// this must be 32 bit int; jail() is old.
 				i := uint32(v)
 				cur.Base, cur.Len = (*byte)(unsafe.Pointer(&i)), uint64(4)
 			case net.IP:
@@ -231,20 +231,23 @@ func Set(flags SetFlag, opts ...interface{}) (int, error) {
 			case bool:
 				cur.Base, cur.Len = (*byte)(unsafe.Pointer(uintptr(0))), 0
 			default:
-				return -1, fmt.Errorf("unexpected type")
+				return nil, fmt.Errorf("unexpected type")
 			}
 		}
 		iov[i] = cur
 	}
+	return iov, nil
+}
 
-	set := func() (int, error) {
-		niov := len(iov)
-		rc, _, errno := syscall.Syscall(syscall.SYS_JAIL_SET, uintptr(unsafe.Pointer(&iov[0])), uintptr(niov), uintptr(flags))
-		if errno != 0 {
-			return -1, error(errno)
-		}
-		return int(rc), nil
+func Set(flags SetFlag, opts ...interface{}) (int, error) {
+	iov, err := toIovec(opts...)
+	if err != nil {
+		return -1, err
 	}
-
-	return set()
+	niov := len(iov)
+	rc, _, errno := syscall.Syscall(syscall.SYS_JAIL_SET, uintptr(unsafe.Pointer(&iov[0])), uintptr(niov), uintptr(flags))
+	if errno != 0 {
+		return -1, error(errno)
+	}
+	return int(rc), nil
 }
